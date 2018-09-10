@@ -1,0 +1,12 @@
+Package: meta2way
+Title: Two-way Meta-Analysis for Cost-Outcome Evaluations
+Version: 0.0.0.9000
+Authors@R: person("Cornelis H.", "Van Werkhoven", email = "c.h.vanwerkhoven@umcutrecht.nl", role = c("aut", "cre"))
+Description: Perform a two-way meta-analysis for cost-outcome evaluations, plot cost-effectiveness planes, and plot willingness to pay plots.
+Depends: R (>= 3.4.3)
+Imports:
+    methods
+License: GPL-2 | GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.0.9000
