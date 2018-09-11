@@ -5,7 +5,7 @@ Authors@R: person("Cornelis H.", "Van Werkhoven", email = "c.h.vanwerkhoven@umcu
 Description: Perform a two-way meta-analysis for cost-outcome evaluations, plot cost-effectiveness planes, and plot willingness to pay plots.
 URL: https://github.com/henrivanwerkhoven/meta2way
 BugReports: https://github.com/henrivanwerkhoven/meta2way/issues
-Depends: R (>= 3.4.3)
+Depends: R (>= 3.0.0)
 Imports:
     methods
 License: GPL-2 | GPL-3
