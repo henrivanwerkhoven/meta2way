@@ -12,50 +12,65 @@
 #' @param col line color. Defaults to 1.
 #' @param lty line type. Defaults to 1.
 #' @param add logical whether to add the line to the previous plot. Defaults to FALSE.
-#' @param res integer how many data points should be calculated between xlim[1] and xlim[2]. Defaults to 1000.
 #' @keywords Willingness to pay; cost-effectiveness; meta-analysis
 #' @export
 #' @return
-#' Returns NULL invisibly.
+#' Returns a data frame with the x and y coordinates of the plotted curve.
 #' @examples
 #' m <- meta2way(study2way(treatments$Abrahams2018.x, treatments$Abrahams2018.y, 'Abrahams 2018'),
 #'               study2way(treatments$Baruch2018.x, treatments$Baruch2018.y, 'Baruch 2018'))
 #' willing2pay(m, 'fixed')
-willing2pay <- function(object, type, xlim=NA, xlim.quantile=.999, ylim=0:1,
-                        xlab="Costs per effect", ylab="Probability of acceptance", main="Willingness to Pay",
-                        col=1, lty=1, add=FALSE, res=1e3){
+willing2pay <- function(object, type, xlim=NA, xlim.quantile=0.999, ylim=0:1,
+                        xlab="Costs per effect treshold", ylab="Probability of acceptance", main= "Willingness to Pay",
+                        col=1, lty=1, add=FALSE){
   # check arguments and extract data
-  if(class(object) == 'study2way'){
+  if(class(object) == "study2way"){
     x <- object$x.bt
     y <- object$y.bt
-  }else if(class(object) == "meta2way"){
+  }
+  else if(class(object) == "meta2way"){
     if(missing(type)){
-      if(object$do.fixed & !object$do.random) type <- 'fixed'
-      else if(object$do.random & !object$do.fixed) type <- 'random'
-      else type <- 'not provided'
+      if(object$do.fixed & !object$do.random) type <- "fixed"
+      else if(object$do.random & !object$do.fixed) type <- "random"
+      else type <- "not provided"
     }
-    if(type=='fixed'){ x <- object$x$meta.fixed; y <- object$y$meta.fixed }
-    else if(type=='random'){ x <- object$x$meta.random; y <- object$y$meta.random }
+    if(type == "fixed"){
+      x <- object$x$meta.fixed
+      y <- object$y$meta.fixed
+    }
+    else if (type == "random") {
+      x <- object$x$meta.random
+      y <- object$y$meta.random
+    }
     else stop("Argument type should be either of 'fixed' or 'random' or can be omitted if object contains only one of these meta-analysis types.")
-  }else{
+  }
+  else{
     stop("Argument object should be of class meta2way or study2way")
   }
   in.dominated <- x <= 0 & y >= 0 & !(x == 0 & y == 0)
   in.costsaving <- x >= 0 & y <= 0 & !(x == 0 & y == 0)
   in.topright <- x > 0 & y > 0
   in.bottomleft <- x < 0 & y < 0
-  in.cross <- x==0 & y==0
-  if(is.na(xlim[1])) xlim <- c(0, quantile(c(rep(-Inf, sum(in.dominated | in.costsaving | in.cross)), y[in.topright | in.bottomleft] / x[in.topright | in.bottomleft]), xlim.quantile))
-  else if(length(xlim) != 2 | !is.numeric(xlim) | xlim[2] <= xlim[1]) stop("Argument xlim should be numeric with length 2 with second number > first number.")
-  tresholds <- seq(xlim[1], xlim[2], length.out = res)
-  probability <- sapply(tresholds, function(treshold){
-    mean(in.costsaving | (in.topright & (y / x) <= treshold) | (in.bottomleft & (y / x) > treshold) )
+  in.cross <- x == 0 & y == 0
+  if (is.na(xlim[1]))
+    xlim <- c(0, quantile(c(rep(-Inf, sum(in.dominated |
+                                            in.costsaving | in.cross)), y[in.topright | in.bottomleft]/x[in.topright |
+                                                                                                           in.bottomleft]), xlim.quantile))
+  else if (length(xlim) != 2 | !is.numeric(xlim) | xlim[2] <=
+           xlim[1])
+    stop("Argument xlim should be numeric with length 2 with second number > first number.")
+  tresholds <- c(xlim[1],sort(unique((y/x)[y/x > xlim[1] & y/x <= xlim[2]])))
+  probability <- sapply(tresholds, function(treshold) {
+    mean(in.costsaving | (in.topright & (y/x) <= treshold) |
+           (in.bottomleft & (y/x) > treshold))
   })
-  if(add){
-    lines(tresholds, probability, col=col, lty=lty)
+  if (add) {
+    lines(tresholds, probability, col = col, lty = lty)
   }
-  else{
-    plot(tresholds, probability, type="l", xlab=xlab, ylab=ylab, xlim=xlim, ylim=ylim, col=col, lty=lty, main=main)
+  else {
+    plot(tresholds, probability, type = "l", xlab = xlab,
+         ylab = ylab, xlim = xlim, ylim = ylim, col = col,
+         lty = lty, main = main)
   }
-  invisible(NULL)
+  invisible(data.frame(x=tresholds, y=probability))
 }
