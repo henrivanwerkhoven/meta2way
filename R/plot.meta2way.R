@@ -3,6 +3,8 @@
 #' This function plots the cost-efectiveness plane of a two-way meta-analysis.
 #' @param x Object of class meta2way.
 #' @param y Should be omitted.
+#' @param do.fixed whether to plot the fixed effects meta-analysis. Defaults to x$do.fixed.
+#' @param do.random whether to plot the random effects meta-analysis. Defaults to x$do.random.
 #' @param xlab x axis label. Defaults to 'x'.
 #' @param ylab y axis label. Defaults to 'y'.
 #' @param col color for individual studies. Defaults to 2:(x$n.studies+1).
@@ -16,9 +18,12 @@
 #' @param meta.points logical whether bootstrap points of meta-analyses should be plotted. Defaults to FALSE.
 #' @param max.points integer the maximum number of bootstrap points to be plotted per study and meta-analysis. Bootstrap samples 1 to max.points will be plotted if available. Use NA or NULL to plot all points. Defaults to 2000.
 #' @param quadrant.proportions logical whether the proportions of meta-analysis bootstrap points in each quadrant should be printed in the plot corners. Defaults to FALSE.
+#' @param quadrant.format format for the quadrant proportions. If do.fixed and do.random are both true, two numbers are required in the format. Default depends on do.fixed and do.random.
 #' @param legend logical whether a legend of the studies should be printed. The legend will be printed below the plot. Defaults to TRUE.
 #' @param legend.ncol integer number of columns of the legend. Defaults to 2.
 #' @param legend.cex relative font size of the legend. Defaults to 1.
+#' @param legend.I2 logical whether to show the I2 statistics in the legend. Defaults to TRUE.
+#' @param legend.tau2 logical whether to show the tau2 statistics in the legend. Defaults to TRUE.
 #' @keywords meta-analysis; cost-effectiveness; bootstrapping
 #' @export
 #' @return
@@ -27,10 +32,13 @@
 #' m <- meta2way(study2way(treatments$Abrahams2018.x, treatments$Abrahams2018.y, 'Abrahams 2018'),
 #'               study2way(treatments$Baruch2018.x, treatments$Baruch2018.y, 'Baruch 2018'))
 #' plot(m, xlab='delta effects', ylab='delta costs')
-plot.meta2way <- function(x, y, xlab="x", ylab="y", col=NULL, pch=NULL, lwd=1, lty=1, points=TRUE,
+plot.meta2way <- function(x, y, do.fixed=x$do.fixed, do.random=x$do.random,
+                          xlab="x", ylab="y", col=NULL, pch=NULL, lwd=1, lty=1, points=TRUE,
                           meta.col=1, meta.pch=c(17,15), meta.lwd=2, meta.lty=c(2,3), meta.points=FALSE,
-                          max.points=2000, quadrant.proportions=FALSE,
-                          legend=TRUE, legend.ncol=2, legend.cex=1){
+                          label.fixed.estimate='Fixed estimate', label.fixed.conf.area='Fixed conf area',
+                          label.random.estimate='Random estimate', label.random.conf.area='Random conf area',
+                          max.points=2000, quadrant.proportions=FALSE, quadrant.format=if(do.fixed & do.random) '%.1f%% (FE model)\n%.1f%% (RE model)' else '%.1f%% (meta-analysis)',
+                          legend=TRUE, legend.ncol=2, legend.cex=1, legend.I2=TRUE, legend.tau2=TRUE){
 
   # check arguments
   if(!missing(y)) stop("Argument y should not be used.")
@@ -51,6 +59,15 @@ plot.meta2way <- function(x, y, xlab="x", ylab="y", col=NULL, pch=NULL, lwd=1, l
   else if(length(meta.pch) == 1) meta.pch <- c(fixed=meta.pch, random=meta.pch)
   else stop('Argument meta.pch should be a vector length 1 or 2')
 
+  if(do.fixed & !x$do.fixed){
+    warning("Argument do.fixed should only be set to TRUE if x$do.fixed is also TRUE")
+    do.fixed <- FALSE
+  }
+  if(do.random & !x$do.random){
+    warning("Argument do.random should only be set to TRUE if x$do.random is also TRUE")
+    do.random <- FALSE
+  }
+
   oldpar <- par(mar=c(6,3,.5,.5), mgp=c(2,1,0))
 
   plot(NA, type="n", xlim=range(x$x$bt), ylim=range(x$y$bt), xlab=xlab, ylab=ylab)
@@ -63,56 +80,64 @@ plot.meta2way <- function(x, y, xlab="x", ylab="y", col=NULL, pch=NULL, lwd=1, l
   }
 
   # add meta-analysis
-  if(x$do.fixed)
+  if(do.fixed)
     plot(study2way(x$x$meta.fixed, x$y$meta.fixed, 'FE'), col=meta.col['fixed'], pch=meta.pch['fixed'], center.pch=meta.pch['fixed'], lwd=meta.lwd, lty=meta.lty['fixed'], points=meta.points, max.points=max.points, add=TRUE)
-  if(x$do.random)
+  if(do.random)
     plot(study2way(x$x$meta.random, x$y$meta.random, 'RE'), col=meta.col['random'], pch=meta.pch['random'], center.pch=meta.pch['random'], lwd=meta.lwd, lty=meta.lty['random'], points=meta.points, max.points=max.points, add=TRUE)
 
   if(quadrant.proportions){
-    q.fix <- q.ran <- c(bottomleft=NA,bottomright=NA,topleft=NA,topright=NA)
-    if(x$do.fixed){
-      q.fix <- c(
-        bottomleft = mean(x$x$meta.fixed < 0 & x$y$meta.fixed < 0),
-        bottomright = mean(x$x$meta.fixed > 0 & x$y$meta.fixed < 0),
-        topleft = mean(x$x$meta.fixed < 0 & x$y$meta.fixed > 0),
-        topright = mean(x$x$meta.fixed > 0 & x$y$meta.fixed > 0)
-      )*100
+    quadrants <- c('bottomleft','bottomright','topleft','topright')
+    arg <- list(quadrant.format)
+    if(do.fixed){
+      # same order as quadrants
+      arg <- c(arg, list(c(
+        mean(x$x$meta.fixed < 0 & x$y$meta.fixed < 0),
+        mean(x$x$meta.fixed > 0 & x$y$meta.fixed < 0),
+        mean(x$x$meta.fixed < 0 & x$y$meta.fixed > 0),
+        mean(x$x$meta.fixed > 0 & x$y$meta.fixed > 0)
+      )*100))
     }
-    if(x$do.random){
-      q.ran <- c(
-        bottomleft = mean(x$x$meta.random < 0 & x$y$meta.random < 0),
-        bottomright = mean(x$x$meta.random > 0 & x$y$meta.random < 0),
-        topleft = mean(x$x$meta.random < 0 & x$y$meta.random > 0),
-        topright = mean(x$x$meta.random > 0 & x$y$meta.random > 0)
-      )*100
+    if(do.random){
+      arg <- c(arg, list(c(
+        mean(x$x$meta.random < 0 & x$y$meta.random < 0),
+        mean(x$x$meta.random > 0 & x$y$meta.random < 0),
+        mean(x$x$meta.random < 0 & x$y$meta.random > 0),
+        mean(x$x$meta.random > 0 & x$y$meta.random > 0)
+      )*100))
     }
-    sapply(names(q.fix), function(pos){
-      txt <- c(
-        sprintf("%.1f%% (FE model)", q.fix[pos]),
-        sprintf("%.1f%% (RE model)", q.ran[pos])
-      )[c(x$do.fixed, x$do.random)]
-      legend(pos,legend = txt, bty='n', cex=legend.cex)
+    q.label <- do.call(sprintf, arg)
+    names(q.label) <- quadrants
+    sapply(quadrants, function(q){
+      legend(q, legend = q.label[q], bty='n', cex=legend.cex)
     })
   }
 
   par(mar=c(.1,.1,.1,.1), new=TRUE)
   plot(NA, type="n", xlim=0:1, ylim=0:1, yaxt='n', xaxt='n', xlab='', ylab='', bty ="n")
 
-  text(0,0,labels=paste0(xlab, ": tau2 = ",formatC(x$x$tau2, format='e', digits=2),"; I2 = ",sprintf("%.1f%%",x$x$I2*100),"\n",
-                         ylab, ": tau2 = ",formatC(x$y$tau2, format='e', digits=2),"; I2 = ",sprintf("%.1f%%",x$y$I2*100)), cex=legend.cex, adj=0)
+  if(legend.I2 | legend.tau2){
+    l <- function(d){
+      t <- ''
+      if(legend.tau2) t <- paste0(t, "tau2 = ",formatC(d$tau2, format='e', digits=2))
+      if(legend.tau2 & legend.I2) t <- paste0(t, "; ")
+      if(legend.I2) t <- paste0(t, "I2 = ",sprintf("%.1f%%",d$I2*100))
+      t
+    }
+    text(0,0,labels=paste0(xlab, ": ", l(x$x), "\n", ylab, ": ", l(x$y)), cex=legend.cex, adj=0)
+  }
 
   if(legend){
     l.txt <- x$study.names
     l.lty <- rep(1,x$n.studies)
     l.pch <- rep(NA, x$n.studies)
-    l.col <- c(col, rep(meta.col['fixed'], x$do.fixed*2), rep(meta.col['random'], x$do.random*2))
-    if(x$do.fixed){
-      l.txt <- c(l.txt, c('FE estimate','FE conf area'))
+    l.col <- c(col, rep(meta.col['fixed'], do.fixed*2), rep(meta.col['random'], do.random*2))
+    if(do.fixed){
+      l.txt <- c(l.txt, c(label.fixed.estimate, label.fixed.conf.area))
       l.lty <- c(l.lty, c(NA, meta.lty['fixed']))
       l.pch <- c(l.pch, c(meta.pch['fixed'], NA))
     }
-    if(x$do.random){
-      l.txt <- c(l.txt, c('RE estimate','RE conf area'))
+    if(do.random){
+      l.txt <- c(l.txt, c(label.random.estimate, label.random.conf.area))
       l.lty <- c(l.lty, c(NA, meta.lty['random']))
       l.pch <- c(l.pch, c(meta.pch['random'], NA))
     }
