@@ -22,8 +22,9 @@
 #' @param legend logical whether a legend of the studies should be printed. The legend will be printed below the plot. Defaults to TRUE.
 #' @param legend.ncol integer number of columns of the legend. Defaults to 2.
 #' @param legend.cex relative font size of the legend. Defaults to 1.
-#' @param legend.I2 logical whether to show the I2 statistics in the legend. Defaults to TRUE.
-#' @param legend.tau2 logical whether to show the tau2 statistics in the legend. Defaults to TRUE.
+#' @param legend.I2 logical whether to print the I2 statistics in the legend. Defaults to TRUE.
+#' @param legend.tau2 logical whether to print the tau2 statistics in the legend. Defaults to TRUE.
+#' @param legend.ci logical whether to print the 95% confidence interval of the I2 or tau2 statistics. Only in effect if legend.I2==TRUE | legend.tau2==TRUE. Defaults to TRUE.
 #' @keywords meta-analysis; cost-effectiveness; bootstrapping
 #' @export
 #' @return
@@ -38,7 +39,7 @@ plot.meta2way <- function(x, y, do.fixed=x$do.fixed, do.random=x$do.random,
                           label.fixed.estimate='Fixed estimate', label.fixed.conf.area='Fixed conf area',
                           label.random.estimate='Random estimate', label.random.conf.area='Random conf area',
                           max.points=2000, quadrant.proportions=FALSE, quadrant.format=if(do.fixed & do.random) '%.1f%% (FE model)\n%.1f%% (RE model)' else '%.1f%% (meta-analysis)',
-                          legend=TRUE, legend.ncol=2, legend.cex=1, legend.I2=TRUE, legend.tau2=TRUE){
+                          legend=TRUE, legend.ncol=2, legend.cex=1, legend.I2=TRUE, legend.tau2=TRUE, legend.ci=TRUE){
 
   # check arguments
   if(!missing(y)) stop("Argument y should not be used.")
@@ -118,9 +119,15 @@ plot.meta2way <- function(x, y, do.fixed=x$do.fixed, do.random=x$do.random,
   if(legend.I2 | legend.tau2){
     l <- function(d){
       t <- ''
-      if(legend.tau2) t <- paste0(t, "tau2 = ",formatC(d$tau2, format='e', digits=2))
+      if(legend.tau2){
+        t <- paste0(t, "tau2 = ",formatC(d$tau2, format='g', digits=2))
+        if(legend.ci) t <- paste0(t, sprintf(" (%.2g-%.2g)", d$tau2.ci[1], d$tau2.ci[2]))
+      }
       if(legend.tau2 & legend.I2) t <- paste0(t, "; ")
-      if(legend.I2) t <- paste0(t, "I2 = ",sprintf("%.1f%%",d$I2*100))
+      if(legend.I2){
+        t <- paste0(t, "I2 = ",sprintf("%.1f%%",d$I2*100))
+        if(legend.ci) t <- paste0(t, sprintf(" (%.1f%%-%.1f%%)", d$I2.ci[1]*100, d$I2.ci[2]*100))
+      }
       t
     }
     text(0,0,labels=paste0(xlab, ": ", l(x$x), "\n", ylab, ": ", l(x$y)), cex=legend.cex, adj=0)
