@@ -1,6 +1,6 @@
 Package: meta2way
 Title: Two-way Meta-Analysis for Cost-Outcome Evaluations
-Version: 0.0.1.1000
+Version: 0.0.2.1000
 Authors@R: person("Cornelis H.", "Van Werkhoven", email = "c.h.vanwerkhoven@umcutrecht.nl", role = c("aut", "cre"))
 Description: Perform a two-way meta-analysis for cost-outcome evaluations, plot cost-effectiveness planes, and plot willingness to pay plots.
 URL: https://github.com/henrivanwerkhoven/meta2way
